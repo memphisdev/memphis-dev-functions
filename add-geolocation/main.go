@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/memphisdev/memphis-functions.go/memphis"
 	"net/http"
 	"io"
@@ -16,11 +15,8 @@ func (e *ConversionError) Error() string {
 	return e.message
 }
 
-func EventHandler(message []byte, headers map[string]string, inputs map[string]string) ([]byte, map[string]string,  error){
-	var event map[string]interface{}
-	if err := json.Unmarshal(message, &event); err != nil{
-		return nil, nil, err
-	}
+func EventHandler(message any, headers map[string]string, inputs map[string]string) (any, map[string]string,  error){
+	event := *message.(*map[string]any)
 
 	ip, ok := event[inputs["geolocation"]].(string)
 
@@ -44,13 +40,10 @@ func EventHandler(message []byte, headers map[string]string, inputs map[string]s
 
 	event[inputs["out"]] = string(body) 
 	
-	if eventBytes, err := json.Marshal(event); err == nil {
-		return eventBytes, headers, nil	
-	} else{
-		return nil, nil, err
-	}
+	return event, headers, nil
 }
 
 func main() {	
-	memphis.CreateFunction(EventHandler)
+	var schema map[string]any
+	memphis.CreateFunction(EventHandler, memphis.PayloadAsJSON(&schema))
 }

@@ -1,28 +1,20 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/memphisdev/memphis-functions.go/memphis"
 	"time"
 )
 
-func AddTimestamp(payload []byte, headers map[string]string, inputs map[string]string) ([]byte, map[string]string, error) {
+func AddTimestamp(message any, headers map[string]string, inputs map[string]string) (any, map[string]string, error) {
 	// Assumes JSON encoding
-	var payload_json map[string]interface{}
+	event := *message.(*map[string]any)
 
-	if err := json.Unmarshal(payload, &payload_json); err != nil {
-		return nil, nil, err
-	}
+	event["timestamp"] = time.Now().Round(time.Second)
 
-	payload_json["timestamp"] = time.Now().Round(time.Second)
-
-	if modifiedPayload, err := json.Marshal(payload_json); err == nil {
-		return modifiedPayload, headers, nil
-	} else {
-		return nil, nil, err
-	}
+	return event, headers, nil
 }
 
 func main() {
-	memphis.CreateFunction(AddTimestamp)
+	var schema map[string]any
+	memphis.CreateFunction(AddTimestamp, memphis.PayloadAsJSON(&schema))
 }

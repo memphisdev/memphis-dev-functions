@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/memphisdev/memphis-functions.go/memphis"
 	"regexp"
 )
@@ -26,11 +25,8 @@ func (e *NoEmailsError) Error() string {
 var email_regex string
 var re *regexp.Regexp
 
-func EventHandler(message []byte, headers map[string]string, inputs map[string]string) ([]byte, map[string]string,  error){
-	var event map[string]interface{}
-	if err := json.Unmarshal(message, &event); err != nil{
-		return nil, nil, err
-	}
+func EventHandler(message any, headers map[string]string, inputs map[string]string) (any, map[string]string,  error){
+	event := *message.(*map[string]any)
 
 	strWithEmail, ok := event[inputs["email"]].(string);
 	if !ok{
@@ -45,16 +41,13 @@ func EventHandler(message []byte, headers map[string]string, inputs map[string]s
 		return nil, nil, &NoEmailsError{message: "There were no emails found in this event"} 
 	}
 
-	if eventBytes, err := json.Marshal(event); err == nil {
-		return eventBytes, headers, nil	
-	} else{
-		return nil, nil, err
-	}
+	return event, headers, nil
 }
 
 func main() {	
 	email_regex = `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`
 	re = regexp.MustCompile(email_regex)
 	
-	memphis.CreateFunction(EventHandler)
+	var schema map[string]any
+	memphis.CreateFunction(EventHandler, memphis.PayloadAsJSON(&schema))
 }
